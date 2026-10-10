@@ -1,1 +1,223 @@
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#166534">
+<meta name="description" content="Fulus membantu menghitung target tabungan dan rencana menabung harian.">
+<title>Fulus - Simulasi Target Tabungan</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Arial,sans-serif;
+  background:#f4f8f5;color:#17251c
+}
+header{
+  background:#166534;color:white;padding:22px 18px
+}
+nav,main,footer{max-width:680px;margin:auto}
+.logo{font-size:28px;font-weight:800}
+header p{margin:8px 0 0;color:#dcfce7}
+main{padding:20px 15px}
+.card{
+  background:white;border:1px solid #e0e9e2;
+  border-radius:18px;padding:20px;margin-bottom:16px;
+  box-shadow:0 4px 16px #163c1510
+}
+h2{font-size:19px;margin:0 0 16px}
+label{display:block;font-size:14px;font-weight:bold;margin:14px 0 7px}
+input{
+  width:100%;padding:13px;border:1px solid #cbd8ce;
+  border-radius:10px;font-size:16px;background:#fff
+}
+button{
+  width:100%;padding:14px;border:0;border-radius:11px;
+  background:#15803d;color:white;font-weight:bold;
+  font-size:16px;margin-top:18px;cursor:pointer
+}
+button:active{opacity:.8}
+.result{display:none}
+.big{font-size:29px;font-weight:800;color:#166534;margin:8px 0}
+.muted{color:#66756a;font-size:13px;line-height:1.6}
+.track{height:12px;background:#e5eee7;border-radius:20px;overflow:hidden}
+.bar{height:100%;width:0;background:#22a35a;transition:width .3s}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.stat{background:#f1f7f2;padding:13px;border-radius:12px;min-width:0}
+.stat small{color:#66756a}
+.stat strong{display:block;margin-top:8px;font-size:17px;overflow-wrap:anywhere}
+.notice{background:#fff7df;padding:12px;border-radius:10px;font-size:12px;line-height:1.6}
+footer{padding:5px 20px 28px;text-align:center;color:#66756a;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <nav>
+    <div class="logo">◈ fulus.</div>
+    <p>Target jelas, menabung lebih terencana.</p>
+  </nav>
+</header>
+
+<main>
+  <section class="card">
+    <h2>🎯 Buat target tabungan</h2>
+
+    <label for="goal">Nama target</label>
+    <input id="goal" maxlength="60" value="Beli laptop"
+      placeholder="Contoh: Beli motor">
+
+    <label for="target">Jumlah target (Rp)</label>
+    <input id="target" type="number" min="1" step="1000"
+      value="3000000" inputmode="numeric">
+
+    <label for="saved">Tabungan saat ini (Rp)</label>
+    <input id="saved" type="number" min="0" step="1000"
+      value="500000" inputmode="numeric">
+
+    <label for="deadline">Tanggal ingin tercapai</label>
+    <input id="deadline" type="date">
+
+    <button id="calculate" type="button">Hitung target saya</button>
+    <p id="error" role="alert" class="muted"></p>
+  </section>
+
+  <section class="card result" id="result" aria-live="polite">
+    <p class="muted">TARGET KAMU</p>
+    <h2 id="resultGoal">Beli laptop</h2>
+    <div class="big" id="progressText">17%</div>
+    <div class="track"><div class="bar" id="bar"></div></div>
+
+    <div class="stats">
+      <div class="stat">
+        <small>Target uang</small>
+        <strong id="rTarget"></strong>
+      </div>
+      <div class="stat">
+        <small>Sisa target</small>
+        <strong id="rRemaining"></strong>
+      </div>
+      <div class="stat">
+        <small>Tabungan per hari</small>
+        <strong id="rDay"></strong>
+      </div>
+      <div class="stat">
+        <small>Per minggu</small>
+        <strong id="rWeek"></strong>
+      </div>
+      <div class="stat">
+        <small>Per 30 hari</small>
+        <strong id="rMonth"></strong>
+      </div>
+      <div class="stat">
+        <small>Waktu tersisa</small>
+        <strong id="rDays"></strong>
+      </div>
+    </div>
+
+    <p id="message" class="muted"></p>
+    <button id="reset" type="button">Ubah simulasi</button>
+  </section>
+
+  <section class="card">
+    <h2>Tentang Fulus</h2>
+    <p class="muted">
+      Fulus adalah alat simulasi perencanaan tabungan.
+      Tentukan tujuan, hitung kebutuhan menabung, lalu
+      sesuaikan rencanamu dengan kemampuan keuanganmu.
+    </p>
+    <div class="notice">
+      Fulus hanya menghitung simulasi. Website ini tidak
+      menerima, menyimpan, atau memindahkan uang. Hasil
+      perhitungan bukan jaminan bahwa target akan tercapai.
+    </div>
+  </section>
+</main>
+
+<footer>© <span id="year"></span> Fulus · Simulasi tabungan</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const rupiah = n => new Intl.NumberFormat('id-ID',{
+  style:'currency',currency:'IDR',maximumFractionDigits:0
+}).format(n);
+
+const today = new Date();
+const localDate = d =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+const defaultDate = new Date(today);
+defaultDate.setDate(defaultDate.getDate()+30);
+$('deadline').min = localDate(today);
+$('deadline').value = localDate(defaultDate);
+$('year').textContent = today.getFullYear();
+
+$('calculate').addEventListener('click', () => {
+  const goal = $('goal').value.trim();
+  const target = Number($('target').value);
+  const saved = Number($('saved').value);
+  const dateValue = $('deadline').value;
+  const error = $('error');
+
+  error.textContent = '';
+
+  if (!goal) {
+    error.textContent = 'Masukkan nama target terlebih dahulu.';
+    return;
+  }
+  if (!Number.isFinite(target) || target <= 0 ||
+      !Number.isFinite(saved) || saved < 0) {
+    error.textContent = 'Masukkan jumlah uang yang valid.';
+    return;
+  }
+  if (!dateValue) {
+    error.textContent = 'Pilih tanggal target terlebih dahulu.';
+    return;
+  }
+
+  const deadline = new Date(dateValue+'T00:00:00');
+  const start = new Date();
+  start.setHours(0,0,0,0);
+  const days = Math.round((deadline-start)/86400000);
+
+  if (days < 1) {
+    error.textContent = 'Pilih tanggal minimal besok agar perhitungan harian tersedia.';
+    return;
+  }
+
+  const remaining = Math.max(0,target-saved);
+  const percent = Math.min(100,saved/target*100);
+  const daily = Math.ceil(remaining/days);
+
+  $('resultGoal').textContent = goal;
+  $('progressText').textContent =
+    `${percent.toLocaleString('id-ID',{maximumFractionDigits:1})}% tercapai`;
+  $('bar').style.width = percent+'%';
+  $('rTarget').textContent = rupiah(target);
+  $('rRemaining').textContent = rupiah(remaining);
+  $('rDay').textContent = rupiah(daily);
+  $('rWeek').textContent = rupiah(Math.ceil(remaining/days*7));
+  $('rMonth').textContent = rupiah(Math.ceil(remaining/days*30));
+  $('rDays').textContent = days+' hari';
+
+  if (remaining === 0) {
+    $('message').textContent = 'Selamat! Target uangmu sudah tercapai.';
+  } else {
+    $('message').textContent =
+      `Untuk mencapai target dalam ${days} hari, usahakan menyisihkan sekitar `+
+      `${rupiah(daily)} per hari. Sesuaikan dengan kemampuanmu.`;
+  }
+
+  $('result').style.display = 'block';
+  error.textContent = '';
+});
+
+$('reset').addEventListener('click', () => {
+  $('goal').focus();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+$('calculate').click();
+</script>
+</body>
+</html>
+
